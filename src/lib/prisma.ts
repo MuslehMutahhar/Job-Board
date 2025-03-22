@@ -7,7 +7,16 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-export const prisma = globalForPrisma.prisma || new PrismaClient();
+// Set options to optimize for serverless environment
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: ['error', 'warn'],
+    // Connection limit is default set to 1 for better behavior in serverless
+    // See: https://www.prisma.io/docs/concepts/components/prisma-client/working-with-prismaclient/connection-management
+  });
+};
+
+export const prisma = globalForPrisma.prisma || prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
