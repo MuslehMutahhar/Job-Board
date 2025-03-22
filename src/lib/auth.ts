@@ -1,12 +1,40 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import prisma from "./prisma";
+import bcrypt from "bcryptjs";
+
+// Demo user for testing
+const demoUser = {
+  id: "1",
+  name: "Demo User",
+  email: "demo@example.com",
+  // Password: "demo1234"
+  password: "$2a$10$8VKjUhKUCRw5XJUzqvxM.eYD13r7W0GTDA1L.rdHiu4BB6ZdQAgvO",
+  role: "USER",
+};
+
+// Demo company user for testing
+const demoCompany = {
+  id: "2",
+  name: "Demo Company",
+  email: "company@example.com",
+  // Password: "company1234"
+  password: "$2a$10$8VKjUhKUCRw5XJUzqvxM.eYD13r7W0GTDA1L.rdHiu4BB6ZdQAgvO",
+  role: "COMPANY",
+};
+
+// Demo admin user for testing
+const demoAdmin = {
+  id: "3",
+  name: "Admin User",
+  email: "admin@example.com",
+  // Password: "admin1234"
+  password: "$2a$10$8VKjUhKUCRw5XJUzqvxM.eYD13r7W0GTDA1L.rdHiu4BB6ZdQAgvO",
+  role: "ADMIN",
+};
+
+const users = [demoUser, demoCompany, demoAdmin];
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -19,9 +47,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing credentials");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const user = users.find(u => u.email === credentials.email);
 
         if (!user || !user.password) {
           throw new Error("Invalid credentials");
@@ -87,6 +113,6 @@ export const authOptions: NextAuthOptions = {
     signOut: "/auth/logout",
     error: "/auth/error",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "demo-secret-do-not-use-in-production",
   debug: true, // Enable debug mode to see more detailed errors
 }; 
