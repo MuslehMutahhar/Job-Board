@@ -7,11 +7,10 @@ import { z } from "zod";
 // Schema for application creation
 const applicationSchema = z.object({
   jobId: z.string(),
-  resumeUrl: z.string().url(),
-  coverLetter: z.string().optional(),
+  coverLetter: z.string(),
 });
 
-// GET - Fetch all applications for the authenticated user
+// GET - Fetch all applications for a user or company
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
@@ -26,53 +25,48 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get("jobId");
+    const companyId = searchParams.get("companyId");
+    const status = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    let where = {};
+    // Build where conditions based on query parameters and user role
+    let where: any = {};
 
-    // If user is a job seeker, show only their applications
-    if (session.user.role === "JOB_SEEKER") {
-      where = {
-        applicantId: session.user.id,
-        ...(jobId && { jobId }),
+    // If jobId is provided, filter by job
+    if (jobId) {
+      where.jobId = jobId;
+    }
+
+    // If companyId is provided and user has permission, filter by company
+    if (companyId) {
+      where.job = {
+        companyId,
       };
     }
-    // If user is a company, show applications for their jobs
+
+    // If status is provided, filter by status
+    if (status) {
+      where.status = status;
+    }
+
+    // For regular users, only show their own applications
+    if (session.user.role === "USER") {
+      where.userId = session.user.id;
+    }
+    // For company users, only show applications for their jobs
     else if (session.user.role === "COMPANY") {
-      const company = await prisma.company.findUnique({
-        where: { userId: session.user.id },
-        select: { id: true },
-      });
-
-      if (!company) {
-        return NextResponse.json(
-          { error: "Company profile not found" },
-          { status: 404 }
-        );
-      }
-
-      where = {
-        job: {
-          companyId: company.id,
+      where.job = {
+        ...where.job,
+        company: {
+          userId: session.user.id,
         },
-        ...(jobId && { jobId }),
       };
     }
-    // If user is an admin, they can see all applications or filter by jobId
-    else if (session.user.role === "ADMIN") {
-      where = {
-        ...(jobId && { jobId }),
-      };
-    } else {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
-    }
+    // Admin can see all applications
 
-    // Count total applications
+    // Count total applications matching the criteria
     const totalApplications = await prisma.application.count({ where });
 
     // Fetch applications with pagination
@@ -88,13 +82,14 @@ export async function GET(request: NextRequest) {
             title: true,
             company: {
               select: {
+                id: true,
                 name: true,
                 logo: true,
               },
             },
           },
         },
-        applicant: {
+        user: {
           select: {
             id: true,
             name: true,
@@ -136,10 +131,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Only job seekers can apply for jobs
-    if (session.user.role !== "JOB_SEEKER") {
+    // Only regular users can create applications
+    if (session.user.role !== "USER") {
       return NextResponse.json(
-        { error: "Only job seekers can apply for jobs" },
+        { error: "Only users can create applications" },
         { status: 403 }
       );
     }
@@ -156,11 +151,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { jobId, resumeUrl, coverLetter } = result.data;
+    const { jobId, coverLetter } = result.data;
 
-    // Check if the job exists
+    // Check if job exists
     const job = await prisma.job.findUnique({
       where: { id: jobId },
+      include: {
+        company: {
+          select: {
+            userId: true,
+          },
+        },
+      },
     });
 
     if (!job) {
@@ -170,18 +172,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has already applied for this job
+    // Check if user has already applied to this job
     const existingApplication = await prisma.application.findFirst({
       where: {
         jobId,
-        applicantId: session.user.id,
+        userId: session.user.id,
       },
     });
 
     if (existingApplication) {
       return NextResponse.json(
-        { error: "You have already applied for this job" },
-        { status: 409 }
+        { error: "You have already applied to this job" },
+        { status: 400 }
       );
     }
 
@@ -189,9 +191,9 @@ export async function POST(request: NextRequest) {
     const application = await prisma.application.create({
       data: {
         jobId,
-        resumeUrl,
+        userId: session.user.id,
         coverLetter,
-        applicantId: session.user.id,
+        status: "PENDING",
       },
       include: {
         job: {
@@ -204,6 +206,12 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -212,9 +220,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error applying for job:", error);
+    console.error("Error creating application:", error);
     return NextResponse.json(
-      { error: "Failed to submit application" },
+      { error: "Failed to create application" },
       { status: 500 }
     );
   }
