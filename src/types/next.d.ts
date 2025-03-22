@@ -1,4 +1,4 @@
-import { Server as NetServer, IncomingMessage, ServerResponse } from 'http';
+import { Server as NetServer } from 'net';
 import { NextApiResponse } from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 

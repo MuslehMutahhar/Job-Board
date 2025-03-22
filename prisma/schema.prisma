@@ -9,91 +9,93 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  email          String         @unique
-  password       String
-  image          String?
-  role           Role           @default(JOB_SEEKER)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  applications   Application[]
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String
+  role          String    @default("user") // user, company, admin
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  applications  Application[]
   companyProfile Company?
-  jobsPosted     Job[]          @relation("postedJobs")
+  savedJobs     SavedJob[]
 }
 
 model Company {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  logo        String?
-  website     String?
-  description String?
-  industry    String?
-  location    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String   @unique @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobs        Job[]
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  name         String
+  logo         String?
+  industry     String?
+  location     String?
+  website      String?
+  description  String?
+  mission      String?
+  culture      String?
+  benefits     String?
+  employeeCount Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs         Job[]
 }
 
 model Job {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  title           String
-  description     String
-  requirements    String[]
-  responsibilities String[]
-  location        String
-  salary          String?
-  jobType         JobType
-  experienceLevel String
-  skills          String[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deadline        DateTime?
-  companyId       String        @db.ObjectId
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  applications    Application[]
-  postedById      String        @db.ObjectId
-  postedBy        User          @relation("postedJobs", fields: [postedById], references: [id])
+  id           String   @id @default(cuid())
+  title        String
+  companyId    String
+  location     String?
+  type         String   // full-time, part-time, contract, etc.
+  salary       String?
+  department   String?
+  experience   String?
+  description  String?
+  requirements String?
+  status       String   @default("active") // active, filled, closed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications Application[]
+  savedBy      SavedJob[]
 }
 
 model Application {
-  id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  resumeUrl  String
+  id          String   @id @default(cuid())
+  userId      String
+  jobId       String
+  resume      String?
   coverLetter String?
-  status     ApplicationStatus @default(PENDING)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  jobId      String           @db.ObjectId
-  job        Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  applicantId String          @db.ObjectId
-  applicant  User             @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  status      String   @default("pending") // pending, reviewed, interviewed, offered, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
-enum Role {
-  ADMIN
-  COMPANY
-  JOB_SEEKER
-}
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
 
-enum JobType {
-  FULL_TIME
-  PART_TIME
-  CONTRACT
-  INTERNSHIP
-  REMOTE
-}
+  // Relationships
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-enum ApplicationStatus {
-  PENDING
-  REVIEWED
-  INTERVIEWING
-  REJECTED
-  ACCEPTED
+  @@unique([userId, jobId])
 }

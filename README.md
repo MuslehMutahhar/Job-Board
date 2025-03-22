@@ -108,6 +108,50 @@ This application can be deployed on Vercel, Netlify, or any other platform that 
 3. Configure your environment variables
 4. Deploy!
 
+### Vercel Deployment Troubleshooting
+
+If you encounter dependency errors during deployment like:
+- `Can't resolve '@auth/prisma-adapter'`
+- `Can't resolve 'jsonwebtoken'`
+- `Can't resolve 'socket.io'`
+
+These issues occur because the packages are missing from your dependencies. Fix them by:
+
+1. Install required dependencies:
+   ```bash
+   npm install @auth/prisma-adapter jsonwebtoken socket.io socket.io-client
+   ```
+   
+2. Install TypeScript types for development:
+   ```bash
+   npm install --save-dev @types/jsonwebtoken @types/bcrypt
+   ```
+
+3. Make sure the Prisma client is initialized correctly in `src/lib/prisma.ts`:
+   ```typescript
+   import { PrismaClient } from '@prisma/client';
+   
+   const globalForPrisma = global as unknown as { prisma: PrismaClient };
+   
+   export const prisma = globalForPrisma.prisma || new PrismaClient();
+   
+   if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+   
+   export default prisma;
+   ```
+
+4. Run Prisma generate before deploying:
+   ```bash
+   npx prisma generate
+   ```
+
+5. Ensure your `package.json` postinstall script includes Prisma generate:
+   ```json
+   "scripts": {
+     "postinstall": "prisma generate"
+   }
+   ```
+
 ## 🔒 Authentication
 
 The application uses a custom JWT authentication system with the following features:
