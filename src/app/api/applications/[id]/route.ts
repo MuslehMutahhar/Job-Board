@@ -44,7 +44,7 @@ export async function GET(
             },
           },
         },
-        applicant: {
+        user: {
           select: {
             id: true,
             name: true,
@@ -63,7 +63,7 @@ export async function GET(
     }
 
     // Check authorization
-    const isApplicant = application.applicantId === session.user.id;
+    const isApplicant = application.userId === session.user.id;
     const isCompany = application.job.company.userId === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
 
@@ -154,7 +154,7 @@ export async function PATCH(
 
     // For cover letter updates, only the applicant can update
     if (coverLetter !== undefined) {
-      const isApplicant = application.applicantId === session.user.id;
+      const isApplicant = application.userId === session.user.id;
       
       if (!isApplicant) {
         return NextResponse.json(
@@ -182,7 +182,7 @@ export async function PATCH(
             },
           },
         },
-        applicant: {
+        user: {
           select: {
             name: true,
             email: true,
@@ -246,7 +246,7 @@ export async function DELETE(
     }
 
     // Check authorization (applicant, company, or admin can delete)
-    const isApplicant = application.applicantId === session.user.id;
+    const isApplicant = application.userId === session.user.id;
     const isCompany = application.job.company.userId === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
 
