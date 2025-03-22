@@ -1,0 +1,30 @@
+# This is a CODEOWNERS file to define code ownership and review requirements
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# These owners will be the default owners for everything in the repo
+# unless a later match takes precedence
+*                   @admin-team
+
+# Authentication and authorization
+/src/app/api/auth/  @security-team
+
+# Frontend components
+/src/components/    @frontend-team
+/src/app/(routes)/  @frontend-team
+/src/styles/        @frontend-team
+
+# Backend API endpoints
+/src/app/api/       @backend-team
+
+# Database models and migrations
+/prisma/            @database-team
+
+# Configuration files
+*.config.js         @devops-team
+*.config.ts         @devops-team
+/next.config.*      @devops-team
+/.github/           @devops-team
+
+# Documentation
+/docs/              @docs-team
+*.md                @docs-team 

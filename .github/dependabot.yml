@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    # Look for `package.json` and `lock` files in the `root` directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
+    # Groups all dependencies into a single PR
+    groups:
+      development-dependencies:
+        patterns:
+          - "*eslint*"
+          - "*prettier*"
+          - "*test*"
+          - "@types/*"
+      production-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "*eslint*"
+          - "*prettier*"
+          - "*test*"
+          - "@types/*"
+    # Set a limit for pull requests
+    open-pull-requests-limit: 10
+    # Label PRs with `dependencies`
+    labels:
+      - "dependencies"
+    # Specify the minimum severity of security vulnerability to update
+    # Note: This setting does nothing for version updates
+    # For security updates, dependabot will update regardless of this setting
+    ignore:
+      # Ignore some updates to the 'express' package
+      # This is just an example - you should customize this for your needs
+      - dependency-name: "express"
+        # Ignore only new major versions
+        versions: ["2.x", "3.x"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions" 
