@@ -1,7 +1,5 @@
 import { Server as NetServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { NextApiRequest } from 'next';
-import { NextApiResponseServerIO } from '@/types/next';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -60,34 +58,4 @@ export async function GET() {
   }
 
   return new Response('Socket.IO server running', { status: 200 });
-}
-
-// Helper function to emit events to specific rooms
-export function emitToRoom(room: string, event: string, data: any) {
-  if (!io) {
-    io = (global as any).io;
-  }
-  if (io) {
-    io.to(room).emit(event, data);
-  }
-}
-
-// Helper function to emit job updates
-export function emitJobUpdate(jobId: string, data: any) {
-  emitToRoom(`job-${jobId}`, 'jobUpdate', data);
-}
-
-// Helper function to emit company updates
-export function emitCompanyUpdate(companyId: string, data: any) {
-  emitToRoom(`company-${companyId}`, 'companyUpdate', data);
-}
-
-// Helper function to emit new job notifications
-export function emitNewJob(data: any) {
-  if (!io) {
-    io = (global as any).io;
-  }
-  if (io) {
-    io.emit('newJob', data);
-  }
 } 
