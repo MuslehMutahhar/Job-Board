@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcrypt";
 import prisma from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 
-// Define schema for request validation
+// Schema for user registration
 const registerSchema = z.object({
-  name: z.string().min(1, { message: "Name is required." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  userType: z.enum(["JOB_SEEKER", "COMPANY"], {
-    errorMap: () => ({ message: "User type must be either JOB_SEEKER or COMPANY." }),
-  }),
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(["USER", "COMPANY"]),
+  companyName: z.string().optional(),
+  industry: z.string().optional(),
+  location: z.string().optional(),
+  website: z.string().url().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -27,27 +29,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password, userType } = result.data;
+    const { 
+      name, 
+      email, 
+      password, 
+      role,
+      companyName,
+      industry,
+      location,
+      website,
+    } = result.data;
 
-    // Check if user already exists
+    // Check if email is already registered
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email already in use" },
-        { status: 409 }
+        { error: "Email already registered" },
+        { status: 400 }
       );
     }
 
-    // Hash the password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Map userType to role
-    const role = userType === 'COMPANY' ? 'COMPANY' : 'USER';
-
-    // Create the user
+    // Create user
     const user = await prisma.user.create({
       data: {
         name,
@@ -57,40 +65,34 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // If user type is company, create a company profile
-    if (userType === 'COMPANY') {
+    // If registering as a company, create company profile
+    if (role === "COMPANY") {
+      if (!companyName) {
+        return NextResponse.json(
+          { error: "Company name is required for company registration" },
+          { status: 400 }
+        );
+      }
+
       await prisma.company.create({
         data: {
-          name,
-          userId: user.id,
-        },
-      });
-    } else {
-      // Create job seeker profile
-      await prisma.jobSeeker.create({
-        data: {
+          name: companyName,
+          industry,
+          location,
+          website,
           userId: user.id,
         },
       });
     }
 
     return NextResponse.json(
-      { 
-        message: "User registered successfully",
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        }
-      },
+      { message: "Registration successful" },
       { status: 201 }
     );
-    
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("Error during registration:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to register user" },
       { status: 500 }
     );
   }
