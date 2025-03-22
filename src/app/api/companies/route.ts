@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 // Schema for company creation/update
 const companySchema = z.object({
@@ -73,9 +74,9 @@ export async function GET(request: NextRequest) {
     const where = search
       ? {
           OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { industry: { contains: search, mode: "insensitive" } },
-            { location: { contains: search, mode: "insensitive" } },
+            { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { industry: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { location: { contains: search, mode: Prisma.QueryMode.insensitive } },
           ],
         }
       : {};
