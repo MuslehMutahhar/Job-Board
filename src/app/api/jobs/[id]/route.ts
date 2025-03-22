@@ -36,6 +36,7 @@ export async function GET(
             industry: true,
             location: true,
             website: true,
+            userId: true,
           },
         },
         applications: {
@@ -86,7 +87,13 @@ export async function PATCH(
     // Find the job to check ownership
     const job = await prisma.job.findUnique({
       where: { id },
-      select: { postedById: true, companyId: true },
+      include: {
+        company: {
+          select: {
+            userId: true,
+          },
+        },
+      },
     });
 
     if (!job) {
@@ -96,10 +103,10 @@ export async function PATCH(
       );
     }
 
-    // Check authorization (admin, owner of the job, or company that posted the job)
+    // Check authorization (admin or company that posted the job)
     const isAuthorized = 
       session.user.role === "ADMIN" || 
-      job.postedById === session.user.id;
+      job.company.userId === session.user.id;
 
     if (!isAuthorized) {
       return NextResponse.json(
@@ -194,7 +201,13 @@ export async function DELETE(
     // Find the job to check ownership
     const job = await prisma.job.findUnique({
       where: { id },
-      select: { postedById: true, companyId: true },
+      include: {
+        company: {
+          select: {
+            userId: true,
+          },
+        },
+      },
     });
 
     if (!job) {
@@ -204,10 +217,10 @@ export async function DELETE(
       );
     }
 
-    // Check authorization (admin, owner of the job, or company that posted the job)
+    // Check authorization (admin or company that posted the job)
     const isAuthorized = 
       session.user.role === "ADMIN" || 
-      job.postedById === session.user.id;
+      job.company.userId === session.user.id;
 
     if (!isAuthorized) {
       return NextResponse.json(

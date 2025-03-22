@@ -33,11 +33,7 @@ export async function GET(
       where: { id },
       include: {
         job: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            companyId: true,
+          include: {
             company: {
               select: {
                 id: true,
@@ -46,7 +42,6 @@ export async function GET(
                 userId: true,
               },
             },
-            postedById: true,
           },
         },
         applicant: {
@@ -71,9 +66,8 @@ export async function GET(
     const isApplicant = application.applicantId === session.user.id;
     const isCompany = application.job.company.userId === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
-    const isJobPoster = application.job.postedById === session.user.id;
 
-    if (!isApplicant && !isCompany && !isAdmin && !isJobPoster) {
+    if (!isApplicant && !isCompany && !isAdmin) {
       return NextResponse.json(
         { error: "Not authorized to view this application" },
         { status: 403 }
@@ -113,14 +107,12 @@ export async function PATCH(
       where: { id },
       include: {
         job: {
-          select: {
-            companyId: true,
+          include: {
             company: {
               select: {
                 userId: true,
               },
             },
-            postedById: true,
           },
         },
       },
@@ -147,13 +139,12 @@ export async function PATCH(
 
     const { status, coverLetter } = result.data;
 
-    // For status updates, only company, job poster, or admin can update
+    // For status updates, only company or admin can update
     if (status) {
       const isCompany = application.job.company.userId === session.user.id;
       const isAdmin = session.user.role === "ADMIN";
-      const isJobPoster = application.job.postedById === session.user.id;
 
-      if (!isCompany && !isAdmin && !isJobPoster) {
+      if (!isCompany && !isAdmin) {
         return NextResponse.json(
           { error: "Not authorized to update application status" },
           { status: 403 }
@@ -236,13 +227,12 @@ export async function DELETE(
       where: { id },
       include: {
         job: {
-          select: {
+          include: {
             company: {
               select: {
                 userId: true,
               },
             },
-            postedById: true,
           },
         },
       },
@@ -255,13 +245,12 @@ export async function DELETE(
       );
     }
 
-    // Check authorization (applicant, company, job poster, or admin can delete)
+    // Check authorization (applicant, company, or admin can delete)
     const isApplicant = application.applicantId === session.user.id;
     const isCompany = application.job.company.userId === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
-    const isJobPoster = application.job.postedById === session.user.id;
 
-    if (!isApplicant && !isCompany && !isAdmin && !isJobPoster) {
+    if (!isApplicant && !isCompany && !isAdmin) {
       return NextResponse.json(
         { error: "Not authorized to delete this application" },
         { status: 403 }

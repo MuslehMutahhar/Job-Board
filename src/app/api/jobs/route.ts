@@ -124,6 +124,26 @@ export async function POST(request: NextRequest) {
       companyId 
     } = result.data;
 
+    // Verify that the user has permission to create jobs for this company
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { userId: true },
+    });
+
+    if (!company) {
+      return NextResponse.json(
+        { error: "Company not found" },
+        { status: 404 }
+      );
+    }
+
+    if (session.user.role !== "ADMIN" && company.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Not authorized to create jobs for this company" },
+        { status: 403 }
+      );
+    }
+
     // Create the job
     const job = await prisma.job.create({
       data: {
@@ -138,7 +158,6 @@ export async function POST(request: NextRequest) {
         skills,
         deadline: deadline ? new Date(deadline) : undefined,
         companyId,
-        postedById: session.user.id,
       },
       include: {
         company: {
