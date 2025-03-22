@@ -1,10 +1,9 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-
-const prisma = new PrismaClient();
+import prisma from "./prisma";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -17,38 +16,32 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Missing credentials");
         }
 
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
 
-          if (!user || !user.password) {
-            return null;
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            role: user.role,
-          };
-        } catch (error) {
-          console.error("NextAuth authorize error:", error);
-          return null;
+        if (!user || !user.password) {
+          throw new Error("Invalid credentials");
         }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          throw new Error("Invalid credentials");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
       },
     }),
   ],
@@ -70,27 +63,30 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        return {
-          ...token,
-          id: user.id,
-          role: user.role,
-        };
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
+      if (token) {
+        session.user = {
+          id: token.id as string,
+          email: token.email as string,
+          name: token.name as string,
+          role: token.role as string,
+        };
       }
       return session;
     },
   },
   pages: {
     signIn: "/auth/login",
-    signOut: "/auth/signout",
+    signOut: "/auth/logout",
     error: "/auth/error",
   },
-  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-do-not-use-in-production",
+  secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug mode to see more detailed errors
 }; 
