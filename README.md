@@ -169,9 +169,6 @@ job-board/
 ### Company Profile
 ![Company Profile](https://github.com/yourusername/job-board/raw/main/public/images/screenshots/company.png)
 
-### Dashboard
-![Dashboard](https://github.com/yourusername/job-board/raw/main/public/images/screenshots/dashboard.png)
-
 </details>
 
 ## 🔮 Future Enhancements
