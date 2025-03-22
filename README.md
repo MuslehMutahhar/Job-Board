@@ -161,13 +161,13 @@ job-board/
 <summary>Click to view screenshots</summary>
 
 ### Home Page
-![Home Page](https://github.com/yourusername/job-board/raw/main/public/images/screenshots/home.png)
+![Home Page](https://github.com/MuslehMutahhar/Job-Board/raw/main/public/images/screenshots/home.png)
 
 ### Job Listings
-![Job Listings](https://github.com/yourusername/job-board/raw/main/public/images/screenshots/jobs.png)
+![Job Listings](https://github.com/MuslehMutahhar/Job-Board/raw/main/public/images/screenshots/jobs.png)
 
 ### Company Profile
-![Company Profile](https://github.com/yourusername/job-board/raw/main/public/images/screenshots/company.png)
+![Company Profile](https://github.com/MuslehMutahhar/Job-Board/raw/main/public/images/screenshots/company.png)
 
 </details>
 
