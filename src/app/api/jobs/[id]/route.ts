@@ -12,7 +12,7 @@ const updateJobSchema = z.object({
   responsibilities: z.array(z.string()).optional(),
   location: z.string().optional(),
   salary: z.string().optional().nullable(),
-  jobType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "REMOTE"]).optional(),
+  type: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "REMOTE"]).optional(),
   experienceLevel: z.string().optional(),
   skills: z.array(z.string()).optional(),
   deadline: z.string().optional().nullable(),
@@ -127,20 +127,20 @@ export async function PATCH(
       );
     }
 
-    const { 
-      title, 
-      description, 
-      requirements, 
-      responsibilities, 
-      location, 
-      salary, 
-      jobType, 
-      experienceLevel, 
-      skills, 
-      deadline
+    const {
+      title,
+      description,
+      requirements,
+      responsibilities,
+      location,
+      salary,
+      type,
+      experienceLevel,
+      skills,
+      deadline,
     } = result.data;
 
-    // Update the job
+    // Update job
     const updatedJob = await prisma.job.update({
       where: { id },
       data: {
@@ -149,28 +149,15 @@ export async function PATCH(
         ...(requirements && { requirements }),
         ...(responsibilities && { responsibilities }),
         ...(location && { location }),
-        ...(salary !== undefined && { salary }),
-        ...(jobType && { jobType }),
+        ...(salary && { salary }),
+        ...(type && { type }),
         ...(experienceLevel && { experienceLevel }),
         ...(skills && { skills }),
-        ...(deadline !== undefined && { 
-          deadline: deadline ? new Date(deadline) : null 
-        }),
-      },
-      include: {
-        company: {
-          select: {
-            name: true,
-            logo: true,
-          },
-        },
+        ...(deadline && { deadline }),
       },
     });
 
-    return NextResponse.json({
-      message: "Job updated successfully",
-      job: updatedJob,
-    });
+    return NextResponse.json(updatedJob);
   } catch (error) {
     console.error("Error updating job:", error);
     return NextResponse.json(

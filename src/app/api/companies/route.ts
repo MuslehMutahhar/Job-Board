@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
               id: true,
               title: true,
               location: true,
-              jobType: true,
+              type: true,
               createdAt: true,
               _count: {
                 select: {
