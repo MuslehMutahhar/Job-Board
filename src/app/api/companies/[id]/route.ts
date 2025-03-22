@@ -7,11 +7,11 @@ import { z } from "zod";
 // Schema for company update
 const updateCompanySchema = z.object({
   name: z.string().min(2).optional(),
-  logo: z.string().url().optional().nullable(),
-  website: z.string().url().optional().nullable(),
-  description: z.string().optional().nullable(),
-  industry: z.string().optional().nullable(),
-  location: z.string().optional().nullable(),
+  description: z.string().optional(),
+  industry: z.string().optional(),
+  location: z.string().optional(),
+  website: z.string().url().optional(),
+  logo: z.string().url().optional(),
 });
 
 // GET - Fetch a single company by ID
@@ -26,14 +26,11 @@ export async function GET(
       where: { id },
       include: {
         jobs: {
-          orderBy: {
-            createdAt: "desc",
-          },
           select: {
             id: true,
             title: true,
             location: true,
-            jobType: true,
+            type: true,
             createdAt: true,
             salary: true,
             _count: {
@@ -41,6 +38,12 @@ export async function GET(
                 applications: true,
               },
             },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        _count: {
+          select: {
+            jobs: true,
           },
         },
       },
@@ -63,7 +66,7 @@ export async function GET(
   }
 }
 
-// PATCH - Update a company profile
+// PATCH - Update a company
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -94,7 +97,7 @@ export async function PATCH(
       );
     }
 
-    // Check authorization (admin or owner of the company)
+    // Check authorization (admin or company owner)
     const isAuthorized = 
       session.user.role === "ADMIN" || 
       company.userId === session.user.id;
@@ -118,18 +121,25 @@ export async function PATCH(
       );
     }
 
-    const { name, logo, website, description, industry, location } = result.data;
+    const { 
+      name, 
+      description, 
+      industry, 
+      location, 
+      website, 
+      logo 
+    } = result.data;
 
-    // Update the company profile
+    // Update the company
     const updatedCompany = await prisma.company.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name }),
-        ...(logo !== undefined && { logo }),
-        ...(website !== undefined && { website }),
-        ...(description !== undefined && { description }),
-        ...(industry !== undefined && { industry }),
-        ...(location !== undefined && { location }),
+        ...(name && { name }),
+        ...(description && { description }),
+        ...(industry && { industry }),
+        ...(location && { location }),
+        ...(website && { website }),
+        ...(logo && { logo }),
       },
     });
 
@@ -146,7 +156,7 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete a company profile (admin only)
+// DELETE - Delete a company
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -164,10 +174,27 @@ export async function DELETE(
       );
     }
 
-    // Only admin can delete company profiles
-    if (session.user.role !== "ADMIN") {
+    // Find the company to check ownership
+    const company = await prisma.company.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!company) {
       return NextResponse.json(
-        { error: "Only administrators can delete company profiles" },
+        { error: "Company not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check authorization (admin or company owner)
+    const isAuthorized = 
+      session.user.role === "ADMIN" || 
+      company.userId === session.user.id;
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: "Not authorized to delete this company" },
         { status: 403 }
       );
     }
